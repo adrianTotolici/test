@@ -31,37 +31,43 @@ jobs:
           echo "dependency_url=$DEPENDENCY_URL" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Check Dependent PR Status
+      - name: Check Dependent PR Status via cURL
         if: steps.extract_url.outputs.dependency_url != ''
-        uses: actions/github-script@v7
-        with:
-          # Ensure this line is correct and the secret exists!
-          github-token: ${{ secrets.GH_PAT_FOR_PR_CHECKS }} 
-         
-          script: |
-            const dependencyUrl = '${{ steps.extract_url.outputs.dependency_url }}';
-            const parts = dependencyUrl.split('/');
-            // The PR number is the last part of the URL: .../pull/NUMBER
-            const dependentPrNumber = parts[parts.length - 1];
-            // The repository owner is two parts before the pull part
-            const dependentRepo = parts[parts.length - 3];
-            // The repository name is two parts before the pull part
-            const dependentOwner = parts[parts.length - 4];
+        run: |
+          # 1. Parse the dependent PR details from the extracted URL
+          DEPENDENCY_URL="${{ steps.extract_url.outputs.dependency_url }}"
+          
+          # Extracts the OWNER, REPO, and PR_NUMBER from the URL
+          PR_DETAILS=$(echo "$DEPENDENCY_URL" | awk -F'/' '{print $(NF-3)"/"$(NF-2)"/"$NF}')
+          OWNER=$(echo "$PR_DETAILS" | cut -d'/' -f1)
+          REPO=$(echo "$PR_DETAILS" | cut -d'/' -f2)
+          PR_NUMBER=$(echo "$PR_DETAILS" | cut -d'/' -f3)
 
-            console.log(`Checking status for PR #${dependentPrNumber} in ${dependentOwner}/${dependentRepo}`);
+          echo "Checking status for PR #${PR_NUMBER} in ${OWNER}/${REPO}"
 
-            try {
-              const { data: pullRequest } = await github.rest.pulls.get({
-                owner: dependentOwner,
-                repo: dependentRepo,
-                pull_number: dependentPrNumber,
-              });
+          # 2. Use curl to call the GitHub API (Pulls endpoint)
+          # Use your Personal Access Token (PAT) for authentication.
+          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
+          
+          RESPONSE=$(curl -s -L \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GH_PAT_FOR_PR_CHECKS }}" \
+            "$API_URL")
 
-              if (pullRequest.merged) {
-                console.log(`Dependent PR #${dependentPrNumber} has been merged. Proceeding.`);
-              } else {
-                core.setFailed(`Dependency check failed: PR #${dependentPrNumber} has NOT been merged yet. Please merge it first.`);
-              }
-            } catch (error) {
-              core.setFailed(`Could not retrieve status for PR #${dependentPrNumber}. Error: ${error.message}`);
-            }
+          # 3. Parse the 'merged' status from the JSON response using jq
+          # 'jq' is pre-installed on GitHub-hosted runners.
+          MERGED_STATUS=$(echo "$RESPONSE" | jq -r '.merged')
+
+          # 4. Determine the result and fail if not merged
+          if [ "$MERGED_STATUS" == "true" ]; then
+            echo "✅ Dependent PR #${PR_NUMBER} has been merged. Proceeding."
+          elif [ "$MERGED_STATUS" == "false" ]; then
+            echo "❌ Dependency check failed: PR #${PR_NUMBER} has NOT been merged yet. Merge it first."
+            exit 1 # Fails the workflow step
+          else
+            # This handles cases where the PR number is invalid or API call fails
+            echo "🚨 Error checking PR status or PR not found. API Response:"
+            echo "$RESPONSE"
+            exit 1 # Fails the workflow step
+          fi
+        shell: bash
