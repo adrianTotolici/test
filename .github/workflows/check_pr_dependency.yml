@@ -55,7 +55,7 @@ jobs:
 
           # 2. Use curl to call the GitHub API (Pulls endpoint)
           # Use your Personal Access Token (PAT) for authentication.
-          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pull/${PR_NUMBER}"
+          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
           echo "API_URL =  ${API_URL}"
           
           RESPONSE=$(curl -s -L \
