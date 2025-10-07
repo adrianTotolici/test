@@ -8,6 +8,9 @@ on:
 jobs:
   check_dependency:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # Grant explicit read access to PR data
     steps:
       - name: Extract Dependent PR URL
         id: extract_url
