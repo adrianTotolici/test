@@ -3,6 +3,7 @@ name: Check PR Dependency
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+    # 'synchronize' runs when the head branch is updated (e.g., a new commit is pushed)
 
 jobs:
   check_dependency:
@@ -12,16 +13,14 @@ jobs:
         id: extract_url
         run: |
           PR_BODY="${{ github.event.pull_request.body }}"
+          # You mentioned using a *comment*, but reading the *body* is easier for the Action
+          # since it's immediately available in the event payload. 
+          # Let's look for a specific marker in the PR body/description.
+          # Example marker: "Depends on: https://github.com/OWNER/REPO/pull/2"
           
-          # ----------------------------------------------------------------------
-          # UPDATED GREP COMMAND:
-          # This regex looks for: 
-          # 1. A line starting with 'Depends on:' (optional leading spaces/markdown).
-          # 2. Followed by an optional space.
-          # 3. Followed by the URL structure: https://github.com/OWNER/REPO/pull/NUMBER
-          # ----------------------------------------------------------------------
-          DEPENDENCY_URL=$(echo "$PR_BODY" | grep -oP '^\s*Depends on:\s*(https?://github\.com/[^/]+/[^/]+/pull/\d+)' | sed 's/Depends on: //g' | tail -n 1)
-
+          # This regex looks for 'Depends on:' followed by a URL to a pull request
+          DEPENDENCY_URL=$(echo "$PR_BODY" | grep -oP 'Depends on: \Khttps?://github\.com/[^/]+/[^/]+/pull/\d+')
+          
           if [ -z "$DEPENDENCY_URL" ]; then
             echo "::notice file={0}::No dependency URL found in PR description. Skipping check."
             echo "dependency_url=" >> $GITHUB_OUTPUT
