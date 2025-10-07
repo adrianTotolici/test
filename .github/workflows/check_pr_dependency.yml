@@ -57,15 +57,10 @@ jobs:
           # Use your Personal Access Token (PAT) for authentication.
           API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
           echo "API_URL =  ${API_URL}"
-
-          curl -s \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/adrianTotolici/test/pulls/1"
           
           RESPONSE=$(curl -s -L \
             -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ secrets.GH_PAT_FOR_PR_CHECKS }}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "$API_URL")
 
           # 3. Parse the 'merged' status from the JSON response using jq
