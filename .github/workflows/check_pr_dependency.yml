@@ -50,7 +50,7 @@ jobs:
 
           # 2. Use curl to call the GitHub API (Pulls endpoint)
           # Use your Personal Access Token (PAT) for authentication.
-          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
+          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pull/${PR_NUMBER}"
           
           RESPONSE=$(curl -s -L \
             -H "Accept: application/vnd.github.v3+json" \
