@@ -45,12 +45,18 @@ jobs:
           OWNER=$(echo "$PR_DETAILS" | cut -d'/' -f1)
           REPO=$(echo "$PR_DETAILS" | cut -d'/' -f2)
           PR_NUMBER=$(echo "$PR_DETAILS" | cut -d'/' -f3)
+          
+          echo "PR Details = ${PR_DETAILS} "
+          echo "OWNER = ${OWNER}"
+          echo "REPO = ${REPO}"
+          echo "PR_NUMBER = ${PR_NUMBER}"
 
           echo "Checking status for PR #${PR_NUMBER} in ${OWNER}/${REPO}"
 
           # 2. Use curl to call the GitHub API (Pulls endpoint)
           # Use your Personal Access Token (PAT) for authentication.
           API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pull/${PR_NUMBER}"
+          echo "API_URL =  ${API_URL}"
           
           RESPONSE=$(curl -s -L \
             -H "Accept: application/vnd.github.v3+json" \
